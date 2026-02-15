@@ -1,4 +1,5 @@
 from botasaurus.browser import browser, Driver
+from botasaurus.browser import Wait
 import pandas as pd
 import time
 
@@ -60,9 +61,12 @@ def Scrape_Data(folderPath = "Scraping"):
         print("Error: " ,e)
         return    
     print("Getting Texts from each of the story...")
-    docNumber = 1
-    for i in range(0, 200):
-        driver = Driver(headless=True)
+    docNumber = 201
+
+    driver = Driver(headless=True)
+    for i in range(201, len(story_urls)):  
+        
+        text = driver.select('div.txt_detail', wait = Wait.SHORT)
         driver.get(story_urls["Urls"][i])
         text = driver.select('div.txt_detail').text
         

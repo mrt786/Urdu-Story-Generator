@@ -38,10 +38,10 @@ pip install -r requirements.txt
 Execute the scraping script:
 
 ```bash
-python Scrapping/urdupoint.py
+python Scraping/urdupoint.py
 ```
 
-This will scrape the stories and save them in the `Scrapping/` directory as `Document 1.txt`, `Document 2.txt`, etc.
+This will scrape the stories and save them in the `Scraping/` directory as `Document 1.txt`, `Document 2.txt`, etc.
 
 ## Notes
 - The script runs in headless mode for automation.

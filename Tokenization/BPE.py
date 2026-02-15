@@ -119,6 +119,6 @@ def save_encoded_dataset(words):
 
 
 if __name__ == "__main__":
-    vocab, merges, words = train_bpe(2000)
+    vocab, merges, words = train_bpe(250)
     save_results(vocab, merges)
     save_encoded_dataset(words)

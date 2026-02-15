@@ -1,0 +1,7 @@
+
+error_logs/
+# Ignore virtual environment files (already covered by *, but explicit)
+pyvenv.cfg
+Include/
+Lib/
+Scripts/

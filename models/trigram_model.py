@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 """
 Trigram Language Model for Urdu Story Generation
 Phase III - Built from scratch without any pre-built models
@@ -13,6 +14,8 @@ Usage:
     print(result["story"])
 """
 
+=======
+>>>>>>> 094499a (frontend And backend done)
 import os
 import random
 import pickle
@@ -20,6 +23,7 @@ import math
 from collections import defaultdict, Counter
 from typing import List, Dict, Tuple, Optional
 
+<<<<<<< HEAD
 # Set random seed
 random.seed(42)
 
@@ -33,6 +37,17 @@ START_TOKEN = "\ue003"  # Start token
 class TrigramLanguageModel:
     """Trigram Language Model using MLE with Interpolation."""
 
+=======
+random.seed(42)
+
+EOS_TOKEN = "\ue000"
+EOP_TOKEN = "\ue001"
+EOT_TOKEN = "\ue002"
+START_TOKEN = "\ue003"
+
+
+class TrigramLanguageModel:
+>>>>>>> 094499a (frontend And backend done)
     def __init__(self, lambda1: float = 0.1, lambda2: float = 0.3, lambda3: float = 0.6):
         assert abs(lambda1 + lambda2 + lambda3 - 1.0) < 1e-6
         self.lambda1 = lambda1
@@ -89,8 +104,11 @@ class TrigramLanguageModel:
 
 
 class UrduStoryGenerator:
+<<<<<<< HEAD
     """Story generator using Trigram model."""
 
+=======
+>>>>>>> 094499a (frontend And backend done)
     def __init__(self, model: TrigramLanguageModel):
         self.model = model
 
@@ -108,8 +126,11 @@ class UrduStoryGenerator:
 
 
 class StoryGeneratorAPI:
+<<<<<<< HEAD
     """API interface for FastAPI integration."""
 
+=======
+>>>>>>> 094499a (frontend And backend done)
     def __init__(self, model_path: str = None):
         if model_path and os.path.exists(model_path):
             self.model = self._load_model(model_path)

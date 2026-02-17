@@ -73,15 +73,18 @@ def add_special_tokens(text):
     <EOT> story end
     """
 
-    # Add EOS after sentence endings
-    text = re.sub(sentence_end_characters, lambda m: m.group() + " <EOS>", text)
+    # Add EOS after sentence endings (with spaces before AND after)
+    text = re.sub(sentence_end_characters, lambda m: m.group() + " <EOS> ", text)
 
     # Paragraph splitting
     paragraphs = text.split("\n\n")
-    paragraphs = [p.strip() + " <EOP>" for p in paragraphs if p.strip()]
+    paragraphs = [p.strip() + " <EOP> " for p in paragraphs if p.strip()]
 
     final_text = "\n".join(paragraphs)
     final_text += " <EOT>"
+    
+    # Normalize multiple spaces to single space
+    final_text = re.sub(r' +', ' ', final_text)
 
     return final_text
 

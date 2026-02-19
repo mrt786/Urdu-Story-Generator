@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 
+// Dummy comment to trigger Vercel redeploy
+
 function uuid() {
   return Math.random().toString(36).slice(2, 9);
 }

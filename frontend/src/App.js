@@ -66,7 +66,8 @@ function App() {
     setIsStreaming(true);
 
     try {
-      const res = await fetch('/generate', {
+      const API_BASE = process.env.REACT_APP_API_BASE_URL || '';
+      const res = await fetch(`${API_BASE}/generate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -75,6 +76,9 @@ function App() {
           temperature: Number(temperature),
         }),
       });
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}: ${await res.text()}`);
+      }
       const data = await res.json();
       console.log(data)
       if (data.success) {

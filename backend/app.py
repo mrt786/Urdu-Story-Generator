@@ -1,21 +1,85 @@
+"""
+Phase IV: FastAPI Microservice for Urdu Story Generation
+Exposes the Trigram Language Model via a REST API.
+
+Endpoints:
+    GET  /health    - Health check
+    POST /generate  - Generate an Urdu story (Input: prefix, max_length, temperature)
+    GET  /model-info - Model statistics and metadata
+
+Run:
+    uvicorn app:app --host 0.0.0.0 --port 5000 --reload
+"""
+
 import os
 import sys
-import json
 import pickle
-from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
-from urllib.parse import urlparse, parse_qs
+from contextlib import asynccontextmanager
 
+from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel, Field
+from typing import Optional
+
+# ---------------------------------------------------------------------------
+# Import model classes from Phase III
+# ---------------------------------------------------------------------------
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'models'))
 from trigram_model import StoryGeneratorAPI, TrigramLanguageModel
 
+# ---------------------------------------------------------------------------
+# Configuration
+# ---------------------------------------------------------------------------
 PORT = 5000
 MODEL_PATH = os.path.join(os.path.dirname(__file__), '..', 'models', 'trigram_model.pkl')
 
+# ---------------------------------------------------------------------------
+# FastAPI app
+# ---------------------------------------------------------------------------
+app = FastAPI(
+    title="Urdu Story Generator",
+    description="Trigram Language Model microservice for generating Urdu stories",
+    version="1.0.0",
+)
 
-def ensure_model():
+# CORS – allow the React frontend (and any other origin) to call the API
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# ---------------------------------------------------------------------------
+# Pydantic request / response schemas
+# ---------------------------------------------------------------------------
+class GenerateRequest(BaseModel):
+    prefix: str = Field("", description="Starting phrase in Urdu")
+    max_length: int = Field(500, ge=1, le=5000, description="Maximum tokens to generate")
+    temperature: float = Field(0.8, ge=0.1, le=2.0, description="Sampling temperature")
+
+class GenerateResponse(BaseModel):
+    success: bool
+    story: Optional[str] = None
+    prefix: str
+    error: Optional[str] = None
+
+class ModelInfoResponse(BaseModel):
+    model_type: str
+    vocabulary_size: int
+    total_tokens: int
+    interpolation_weights: dict
+    is_trained: bool
+
+# ---------------------------------------------------------------------------
+# Model loading helper (trains on the fly if .pkl is missing)
+# ---------------------------------------------------------------------------
+
+def ensure_model() -> StoryGeneratorAPI:
+    """Load the pre-trained model or train one from preprocessed documents."""
     if os.path.exists(MODEL_PATH):
-        api = StoryGeneratorAPI(model_path=MODEL_PATH)
-        return api
+        return StoryGeneratorAPI(model_path=MODEL_PATH)
 
     print("Model not found — training from PreProcessing/Preprocessed_documents...")
     data_dir = os.path.join(os.path.dirname(__file__), '..', 'PreProcessing', 'Preprocessed_documents')
@@ -63,132 +127,71 @@ def ensure_model():
     return StoryGeneratorAPI(model_path=MODEL_PATH)
 
 
-api = ensure_model()
+# ---------------------------------------------------------------------------
+# Load model at module level (works with both uvicorn and TestClient)
+# ---------------------------------------------------------------------------
+api_instance = ensure_model()
+print("Model loaded — server is ready.")
 
 
-class Handler(BaseHTTPRequestHandler):
-    def _set_headers(self, code=200, content_type='application/json'):
-        self.send_response(code)
-        self.send_header('Content-Type', content_type)
-        self.send_header('Access-Control-Allow-Origin', '*')
-        self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
-        self.send_header('Access-Control-Allow-Headers', 'Content-Type')
-        self.end_headers()
-
-    def do_OPTIONS(self):
-        self._set_headers()
-
-    def do_GET(self):
-        parsed = urlparse(self.path)
-        path = parsed.path
-        qs = parse_qs(parsed.query)
-
-        if path == '/health' or path == '/':
-            self._set_headers(200)
-            resp = {'status': 'ok', 'message': 'Backend is running'}
-            self.wfile.write(json.dumps(resp, ensure_ascii=False).encode('utf-8'))
-            return
-
-        if path == '/generate':
-            prefix = qs.get('prefix', [''])[0]
-            try:
-                max_length = int(qs.get('max_length', ['500'])[0])
-            except Exception:
-                max_length = 500
-            try:
-                temperature = float(qs.get('temperature', ['0.8'])[0])
-            except Exception:
-                temperature = 0.8
-
-            try:
-                result = api.generate(prefix=prefix, max_length=max_length, temperature=temperature)
-                self._set_headers(200)
-                self.wfile.write(json.dumps(result, ensure_ascii=False).encode('utf-8'))
-            except Exception as e:
-                self._set_headers(500)
-                self.wfile.write(json.dumps({'success': False, 'error': str(e)}).encode('utf-8'))
-            return
-
-        if path == '/stream':
-            prefix = qs.get('prefix', [''])[0]
-            try:
-                max_length = int(qs.get('max_length', ['500'])[0])
-            except Exception:
-                max_length = 500
-            try:
-                temperature = float(qs.get('temperature', ['0.8'])[0])
-            except Exception:
-                temperature = 0.8
-
-            self.send_response(200)
-            self.send_header('Content-Type', 'text/event-stream; charset=utf-8')
-            self.send_header('Cache-Control', 'no-cache')
-            self.send_header('Connection', 'keep-alive')
-            self.send_header('Access-Control-Allow-Origin', '*')
-            self.end_headers()
-
-            try:
-                for token in api.generate_stream(prefix=prefix, max_length=max_length, temperature=temperature):
-                    msg = f"data: {token}\n\n"
-                    try:
-                        self.wfile.write(msg.encode('utf-8'))
-                        self.wfile.flush()
-                    except BrokenPipeError:
-                        break
-
-                try:
-                    self.wfile.write(b"event: done\ndata: \n\n")
-                    self.wfile.flush()
-                except BrokenPipeError:
-                    pass
-            except Exception as e:
-                try:
-                    err_msg = f"event: error\ndata: {str(e)}\n\n"
-                    self.wfile.write(err_msg.encode('utf-8'))
-                    self.wfile.flush()
-                except BrokenPipeError:
-                    pass
-
-            return
-
-        self._set_headers(404)
-        self.wfile.write(json.dumps({'error': 'Not found'}).encode('utf-8'))
-
-    def do_POST(self):
-        parsed = urlparse(self.path)
-        path = parsed.path
-
-        if path == '/generate':
-            content_length = int(self.headers.get('Content-Length', 0))
-            body = self.rfile.read(content_length).decode('utf-8') if content_length > 0 else '{}'
-            try:
-                data = json.loads(body)
-            except Exception:
-                data = {}
-
-            prefix = data.get('prefix', '')
-            max_length = data.get('max_length', 500)
-            temperature = data.get('temperature', 0.8)
-
-            try:
-                result = api.generate(prefix=prefix, max_length=int(max_length), temperature=float(temperature))
-                self._set_headers(200)
-                self.wfile.write(json.dumps(result, ensure_ascii=False).encode('utf-8'))
-            except Exception as e:
-                self._set_headers(500)
-                self.wfile.write(json.dumps({'success': False, 'error': str(e)}).encode('utf-8'))
-            return
-
-        self._set_headers(404)
-        self.wfile.write(json.dumps({'error': 'Not found'}).encode('utf-8'))
+# ---------------------------------------------------------------------------
+# Endpoints
+# ---------------------------------------------------------------------------
+@app.get("/health")
+def health():
+    """Health-check endpoint."""
+    return {"status": "ok", "message": "Backend is running"}
 
 
-if __name__ == '__main__':
-    server = ThreadingHTTPServer(('0.0.0.0', PORT), Handler)
-    print(f"Starting server on http://0.0.0.0:{PORT}")
-    print("Endpoints: /health, /generate (GET/POST)")
-    try:
-        server.serve_forever()
-    except KeyboardInterrupt:
-        print('\nShutting down')
-        server.server_close()
+@app.get("/")
+def root():
+    """Root redirect to docs."""
+    return {"status": "ok", "message": "Urdu Story Generator API — visit /docs for Swagger UI"}
+
+
+@app.post("/generate", response_model=GenerateResponse)
+def generate(req: GenerateRequest):
+    """
+    Generate an Urdu story from an optional prefix.
+
+    - **prefix**: starting phrase in Urdu (empty string for no prompt)
+    - **max_length**: maximum number of tokens to generate (1–5000)
+    - **temperature**: sampling temperature; higher = more creative (0.1–2.0)
+    """
+    result = api_instance.generate(
+        prefix=req.prefix,
+        max_length=req.max_length,
+        temperature=req.temperature,
+    )
+    if not result.get("success"):
+        raise HTTPException(status_code=500, detail=result.get("error", "Generation failed"))
+    return GenerateResponse(
+        success=True,
+        story=result["story"],
+        prefix=req.prefix,
+    )
+
+
+@app.get("/model-info", response_model=ModelInfoResponse)
+def model_info():
+    """Return model statistics and metadata."""
+    model = api_instance.model
+    return ModelInfoResponse(
+        model_type="Trigram Language Model (MLE + Interpolation)",
+        vocabulary_size=len(model.vocabulary),
+        total_tokens=model.total_unigrams,
+        interpolation_weights={
+            "lambda1_unigram": model.lambda1,
+            "lambda2_bigram": model.lambda2,
+            "lambda3_trigram": model.lambda3,
+        },
+        is_trained=model.is_trained,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Entry-point for `python app.py`
+# ---------------------------------------------------------------------------
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run("app:app", host="0.0.0.0", port=PORT, reload=True)

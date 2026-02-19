@@ -65,10 +65,16 @@ function App() {
     addMessage(chatId, 'user', input || '');
     setIsStreaming(true);
 
-    const url = `/generate?prefix=${encodeURIComponent(input || '')}&max_length=${encodeURIComponent(maxLength)}&temperature=${encodeURIComponent(temperature)}`;
-
     try {
-      const res = await fetch(url);
+      const res = await fetch('/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prefix: input || '',
+          max_length: Number(maxLength),
+          temperature: Number(temperature),
+        }),
+      });
       const data = await res.json();
       console.log(data)
       if (data.success) {

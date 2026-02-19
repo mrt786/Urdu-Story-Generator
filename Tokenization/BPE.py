@@ -227,8 +227,8 @@ def save_encoded_dataset(word_freqs):
 
 
 if __name__ == "__main__":
-    # Train BPE with larger vocabulary for better Urdu coverage
-    vocab, merges, word_freqs = train_bpe(1000)
+    # Train BPE with vocabulary size = 250 as per assignment requirement
+    vocab, merges, word_freqs = train_bpe(250)
     save_results(vocab, merges)
     save_encoded_dataset(word_freqs)
     print("BPE training complete!")

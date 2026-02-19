@@ -53,7 +53,7 @@ jobs:
 
       - name: Tag & push to GHCR
         run: |
-          IMAGE=ghcr.io/${{ github.repository }}
+          IMAGE=ghcr.io/$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
           docker tag urdu-story-generator:${{ github.sha }} $IMAGE:latest
           docker tag urdu-story-generator:${{ github.sha }} $IMAGE:${{ github.sha }}
           docker push $IMAGE:latest

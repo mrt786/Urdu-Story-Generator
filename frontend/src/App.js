@@ -68,7 +68,7 @@ function App() {
     setIsStreaming(true);
 
     try {
-      const API_BASE = process.env.REACT_APP_API_BASE_URL || '';
+      const API_BASE = 'https://urdu-story-generator.onrender.com'; // Temporary hardcoded for testing
       const res = await fetch(`${API_BASE}/generate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

@@ -182,6 +182,9 @@ function App() {
         </div>
       </aside>
 
+      {/* overlay shown on mobile when sidebar is open - clicking closes sidebar */}
+      <div className={`overlay ${sidebarOpen ? 'show' : ''}`} onClick={() => setSidebarOpen(false)} />
+
       <main className="chat-main">
         <header className="chat-top">
           <button className="menu-btn" onClick={() => setSidebarOpen(!sidebarOpen)}>☰</button>

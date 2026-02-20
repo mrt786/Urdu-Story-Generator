@@ -58,8 +58,9 @@ function App() {
   function createNewChat() {
     const id = uuid();
     const newChat = { id, title: 'New Chat', messages: [], created_at: Date.now() };
-    setChats([newChat, ...chats]);
+    setChats((prev) => [newChat, ...prev]);
     setActiveChatId(id);
+    return id;
   }
 
   function addMessage(chatId, role, text) {
@@ -73,10 +74,11 @@ function App() {
   async function generateStory(e) {
     e && e.preventDefault();
     setError('');
-    if (!activeChatId) {
-      createNewChat();
+    let chatId = activeChatId;
+    if (!chatId) {
+      // createNewChat returns the id so we can use it immediately
+      chatId = createNewChat();
     }
-    const chatId = activeChatId || chats[0]?.id;
     addMessage(chatId, 'user', input || '');
     setIsStreaming(true);
 

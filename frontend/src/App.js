@@ -65,7 +65,13 @@ function App() {
 
   function addMessage(chatId, role, text) {
     setChats((prev) => {
-      return prev.map((c) => (c.id === chatId ? { ...c, messages: [...c.messages, { role, text, ts: Date.now() }] } : c));
+      const found = prev.find((c) => c.id === chatId);
+      if (found) {
+        return prev.map((c) => (c.id === chatId ? { ...c, messages: [...c.messages, { role, text, ts: Date.now() }] } : c));
+      }
+      // Chat doesn't exist yet (race with createNewChat) - create it and append message
+      const newChat = { id: chatId, title: 'New Chat', messages: [{ role, text, ts: Date.now() }], created_at: Date.now() };
+      return [newChat, ...prev];
     });
   }
 
@@ -116,8 +122,14 @@ function App() {
 
   // Append text to the last bot message in a chat progressively (word-by-word)
   function appendToLastBotMessage(chatId, addition) {
-    setChats((prev) =>
-      prev.map((c) => {
+    setChats((prev) => {
+      const found = prev.find((c) => c.id === chatId);
+      if (!found) {
+        // Create the chat with initial bot message
+        const newChat = { id: chatId, title: 'New Chat', messages: [{ role: 'bot', text: addition, ts: Date.now() }], created_at: Date.now() };
+        return [newChat, ...prev];
+      }
+      return prev.map((c) => {
         if (c.id !== chatId) return c;
         const msgs = [...c.messages];
         if (msgs.length === 0 || msgs[msgs.length - 1].role !== 'bot') {
@@ -127,8 +139,8 @@ function App() {
           msgs[msgs.length - 1] = { ...last, text: (last.text || '') + addition };
         }
         return { ...c, messages: msgs };
-      })
-    );
+      });
+    });
   }
 
   async function streamWordsToChat(chatId, text, delayMs = 60) {

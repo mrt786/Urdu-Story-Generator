@@ -97,7 +97,9 @@ function App() {
       const data = await res.json();
       console.log(data)
       if (data.success) {
-        addMessage(chatId, 'bot', data.story);
+        // Create an empty bot message placeholder, then stream words into it
+        addMessage(chatId, 'bot', '');
+        await streamWordsToChat(chatId, data.story, 60);
       } else {
         addMessage(chatId, 'bot', 'Error: ' + (data.error || 'Unknown error'));
       }
@@ -107,6 +109,37 @@ function App() {
     } finally {
       setIsStreaming(false);
       setInput('');
+    }
+  }
+
+  // Append text to the last bot message in a chat progressively (word-by-word)
+  function appendToLastBotMessage(chatId, addition) {
+    setChats((prev) =>
+      prev.map((c) => {
+        if (c.id !== chatId) return c;
+        const msgs = [...c.messages];
+        if (msgs.length === 0 || msgs[msgs.length - 1].role !== 'bot') {
+          msgs.push({ role: 'bot', text: addition, ts: Date.now() });
+        } else {
+          const last = msgs[msgs.length - 1];
+          msgs[msgs.length - 1] = { ...last, text: (last.text || '') + addition };
+        }
+        return { ...c, messages: msgs };
+      })
+    );
+  }
+
+  async function streamWordsToChat(chatId, text, delayMs = 60) {
+    // Split into words but keep whitespace tokens so spacing is preserved
+    const parts = text.split(/(\s+)/);
+    for (let i = 0; i < parts.length; i++) {
+      const part = parts[i];
+      // append the part (word or whitespace)
+      appendToLastBotMessage(chatId, part);
+      // small delay to simulate live typing/word-by-word generation
+      // allow UI to update
+      // if generation was cancelled (isStreaming false) stop
+      await new Promise((res) => setTimeout(res, delayMs));
     }
   }
 
@@ -121,6 +154,15 @@ function App() {
   function deleteChat(id) {
     setChats((prev) => prev.filter((c) => c.id !== id));
     if (activeChatId === id) setActiveChatId(null);
+  }
+
+  function renderBotMessage(text) {
+    const words = text.split(/(\s+)/);
+    return words.map((word, idx) => (
+      <span key={idx} className="word-animate" style={{ '--word-index': idx }}>
+        {word}
+      </span>
+    ));
   }
 
   return (
@@ -161,7 +203,9 @@ function App() {
           {activeChat ? (
             activeChat.messages.map((m, i) => (
               <div key={i} className={`message ${m.role}`}>
-                <div className="message-text" dir={m.role === 'user' ? 'rtl' : 'auto'}>{m.text}</div>
+                <div className="message-text" dir={m.role === 'user' ? 'rtl' : 'auto'}>
+                  {m.role === 'bot' ? renderBotMessage(m.text) : m.text}
+                </div>
               </div>
             ))
           ) : (

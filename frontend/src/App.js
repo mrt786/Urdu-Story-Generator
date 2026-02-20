@@ -29,7 +29,15 @@ function App() {
   const [temperature, setTemperature] = useState(0.8);
   const [isStreaming, setIsStreaming] = useState(false);
   const [error, setError] = useState('');
+  const [theme, setTheme] = useState(localStorage.getItem('urdu_theme') || 'dark');
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const messagesRef = useRef(null);
+
+  // Persist theme preference
+  useEffect(() => {
+    localStorage.setItem('urdu_theme', theme);
+    document.documentElement.setAttribute('data-theme', theme);
+  }, [theme]);
 
   useEffect(() => {
     setActiveChatId((prev) => prev || chats[0]?.id || null);
@@ -41,6 +49,11 @@ function App() {
       messagesRef.current.scrollTop = messagesRef.current.scrollHeight;
     }
   }, [chats, activeChatId]);
+
+  function toggleTheme() {
+    setTheme(theme === 'dark' ? 'light' : 'dark');
+    setSidebarOpen(false);
+  }
 
   function createNewChat() {
     const id = uuid();
@@ -111,8 +124,8 @@ function App() {
   }
 
   return (
-    <div className="app-dark">
-      <aside className="sidebar">
+    <div className={`app ${theme}`}>
+      <aside className={`sidebar ${sidebarOpen ? 'open' : ''}`}>
         <div className="sidebar-header">
           <h2>Chats</h2>
           <button onClick={createNewChat} className="small-btn">New</button>
@@ -129,13 +142,19 @@ function App() {
 
       <main className="chat-main">
         <header className="chat-top">
-          <h1>{activeChat?.title || 'No Chat Selected'}</h1>
-          {activeChat && (
-            <div className="chat-actions">
-              <button onClick={() => renameChat(activeChat.id, prompt('New title:', activeChat.title) || activeChat.title)} className="small-btn">Rename</button>
-              <button onClick={() => deleteChat(activeChat.id)} className="small-btn danger">Delete</button>
-            </div>
-          )}
+          <button className="menu-btn" onClick={() => setSidebarOpen(!sidebarOpen)}>☰</button>
+          <h1>{activeChat?.title || 'کہانی جنریٹر'}</h1>
+          <div className="header-actions">
+            <button className="theme-btn" onClick={toggleTheme} title="Toggle theme">
+              {theme === 'dark' ? '🌙' : '☀️'}
+            </button>
+            {activeChat && (
+              <div className="chat-actions">
+                <button onClick={() => renameChat(activeChat.id, prompt('نیا عنوان:', activeChat.title) || activeChat.title)} className="small-btn">نام بدلیں</button>
+                <button onClick={() => deleteChat(activeChat.id)} className="small-btn danger">حذف</button>
+              </div>
+            )}
+          </div>
         </header>
 
         <section className="messages" ref={messagesRef}>
@@ -154,11 +173,11 @@ function App() {
           <textarea value={input} onChange={(e) => setInput(e.target.value)} placeholder="اردو میں لکھیں یا خالی چھوڑیں..." dir="rtl"></textarea>
           <div className="controls">
             <div className="controls-left">
-              <label>Max: <input type="number" value={maxLength} onChange={(e)=>setMaxLength(e.target.value)} min="1" max="2000"/></label>
-              <label>Temp: <input type="number" value={temperature} onChange={(e)=>setTemperature(e.target.value)} step="0.1" min="0.1" max="2"/></label>
+              <label>زیادہ سے زیادہ: <input type="number" value={maxLength} onChange={(e)=>setMaxLength(e.target.value)} min="1" max="2000"/></label>
+              <label>درجہ حرارت: <input type="number" value={temperature} onChange={(e)=>setTemperature(e.target.value)} step="0.1" min="0.1" max="2"/></label>
             </div>
             <div className="controls-right">
-              <button type="submit" className="primary" disabled={isStreaming}>{isStreaming ? 'Generating...' : 'Generate'}</button>
+              <button type="submit" className="primary" disabled={isStreaming}>{isStreaming ? 'تیار ہو رہے ہیں...' : 'کہانی بنائیں'}</button>
             </div>
           </div>
         </form>

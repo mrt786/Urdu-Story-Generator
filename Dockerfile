@@ -23,4 +23,4 @@ COPY PreProcessing/Preprocessed_documents/ ./PreProcessing/Preprocessed_document
 EXPOSE 5000
 
 # ── Run FastAPI via uvicorn ──────────────────────────
-CMD ["uvicorn", "backend.app:app", "--host", "0.0.0.0", "--port", "5000"]
+CMD ["uvicorn", "backend.asgi:app", "--host", "0.0.0.0", "--port", "5000"]

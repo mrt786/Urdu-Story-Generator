@@ -3,6 +3,43 @@
   padding: 0;
   box-sizing: border-box;
 }
+/* Layout sanity overrides: ensure chat column and messages behave as a column flex layout
+   These more-specific rules help override any duplicate/old rules that may be present. */
+.app {
+  display: flex;
+  min-height: 100vh;
+}
+
+.app > .chat-main {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0; /* allow children to control scrolling */
+}
+
+.app > .chat-main .messages {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.app > .chat-main .composer {
+  flex: 0 0 auto;
+  position: relative;
+}
+
+/* Force main column to fill viewport and ensure messages area scrolls */
+.app {
+  height: 100vh;
+}
+
+.app > .chat-main {
+  height: 100vh;
+}
+
+.app > .chat-main .messages {
+  overflow-y: auto !important;
+}
 
 html {
   height: 100%;
@@ -62,8 +99,8 @@ body {
   background: var(--bg);
   color: var(--text-primary);
   margin: 0;
-  height: 100vh;
-  overflow: hidden;
+  min-height: 100vh;
+  overflow: auto; /* allow page scrolling */
   transition: background-color 0.5s ease, color 0.5s ease;
   /* Pakistani geometric pattern background - inspired by Sindhi and Mughal designs */
   background-image: 
@@ -77,12 +114,12 @@ html {
 }
 
 #root {
-  height: 100vh;
+  min-height: 100vh;
 }
 
 .app {
   display: flex;
-  height: 100vh;
+  min-height: 100vh;
   background: var(--bg);
   color: var(--text-primary);
 }
@@ -94,10 +131,19 @@ html {
   border-right: 2px solid rgba(196, 30, 58, 0.2);
   display: flex;
   flex-direction: column;
-  height: 100vh;
+  min-height: 100vh;
   overflow-y: auto;
   transition: transform 0.3s ease;
   position: relative;
+}
+
+/* Lock sidebar/navbar width so it doesn't shrink when other content grows */
+.sidebar {
+  flex: 0 0 260px !important;
+  width: 260px !important;
+  min-width: 220px !important;
+  max-width: 360px !important;
+  box-sizing: border-box !important;
 }
 
 /* Pakistani pattern overlay for sidebar */
@@ -194,12 +240,17 @@ html {
   padding: 10px;
   border-radius: 8px;
   margin-bottom: 8px;
-  cursor: pointer;
-  background: transparent;
-  transition: all 0.3s ease;
-  border: 1px solid transparent;
-  position: relative;
-  z-index: 1;
+.chat-top {
+  flex: 0 0 auto; /* do not shrink/grow */
+  padding: 16px 20px;
+}
+.chat-top h1 {
+  min-width: 0; /* allow flex children to shrink */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1 1 auto;
+}
 }
 
 .chat-item:hover {
@@ -217,9 +268,10 @@ html {
   font-weight: 600;
   color: var(--text-primary);
   margin-bottom: 4px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  /* allow wrapping inside sidebar so long titles don't expand width */
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .chat-meta {
@@ -231,7 +283,7 @@ html {
   flex: 1;
   display: flex;
   flex-direction: column;
-  height: 100vh
+  min-height: 0; /* allow children (messages) to scroll properly */
 }
 
 .chat-top {
@@ -244,6 +296,19 @@ html {
   gap: 12px;
   flex-wrap: wrap;
   position: relative;
+}
+
+/* Make navbar sticky so it remains visible while messages scroll */
+.chat-top {
+  position: sticky;
+  top: 0;
+  z-index: 70;
+  backdrop-filter: blur(4px);
+}
+
+/* Ensure the header background is fully opaque when sticky to avoid text legibility */
+.chat-top {
+  background: linear-gradient(180deg, var(--panel), rgba(26,20,16,0.95));
 }
 
 /* Decorative pattern on top */
@@ -285,7 +350,7 @@ html {
   box-shadow: 0 4px 12px rgba(196, 30, 58, 0.2);
 }
 
-.theme-btn {
+
 .theme-btn {
   background: linear-gradient(135deg, rgba(196, 30, 58, 0.1), rgba(255, 215, 0, 0.05));
   border: 1px solid rgba(196, 30, 58, 0.3);
@@ -786,4 +851,76 @@ html {
     z-index: 1001;
   }
 }
+
+/* Prevent horizontal page scrolling caused by oversized header/content */
+html, body, .app {
+  overflow-x: hidden;
+}
+
+/* Header/title should be allowed to shrink and truncate to prevent overflow */
+.chat-top {
+  width: 100%;
+  box-sizing: border-box;
+}
+.chat-top h1 {
+  min-width: 0; /* allow flex children to shrink */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Allow header action group to shrink if space is limited */
+.header-actions {
+  display: flex;
+  gap: 8px;
+  min-width: 0;
+  align-items: center;
+  flex: 0 0 auto; /* keep action group from expanding and pushing title */
+}
+
+/* Prevent buttons from growing and forcing width; keep them compact */
+.header-actions button,
+.menu-btn,
+.theme-btn,
+.small-btn {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+/* Ensure message text wraps and doesn't cause horizontal overflow */
+.message-text {
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
+/* Strong header lock to stop shrinking when content grows elsewhere */
+/* Applied as an override at file end to take precedence. */
+.chat-top {
+  height: 64px !important;
+  min-height: 64px !important;
+  flex: 0 0 64px !important;
+  display: flex !important;
+  align-items: center !important;
+  padding: 0 20px !important;
+  box-sizing: border-box !important;
+  overflow: hidden !important;
+}
+
+.chat-top h1 {
+  margin: 0 !important;
+  padding: 0 !important;
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+.header-actions {
+  flex: 0 0 auto !important;
+}
+
+/* Ensure messages area accounts for header height when sticky */
+.app > .chat-main .messages {
+  padding-top: 12px; /* keep a small gap below header */
 }
